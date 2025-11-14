@@ -54,44 +54,5 @@ public class Ghost
         g.FillEllipse(new SolidBrush(color), rectGhost);
     }
 
-    public void UpdateChasePoint(Point playerTile, Direction playerDir, List<Ghost> allGhosts)
-    {
-        switch (name)
-        {
-            case "blinky":
-                chasePoint = playerTile;
-                ghostSpeed = cellSize / 2f;
-                break;
-
-            case "Pinky":
-                chasePoint = new Point(
-                    playerTile.X + 4 * (playerDir == Direction.Right ? 1 : playerDir == Direction.Left ? -1 : 0),
-                    playerTile.Y + 4 * (playerDir == Direction.Down ? 1 : playerDir == Direction.Up ? -1 : 0)
-                );
-                ghostSpeed = cellSize / 8f;
-                break;
-
-            case "Inky":
-                var blinky = allGhosts.Find(g => g.name == "Blinky");
-                Point vector = new Point(
-                    playerTile.X - blinky.X / cellSize,
-                    playerTile.Y - blinky.Y / cellSize
-                );
-                chasePoint = new Point(playerTile.X + vector.X * 2, playerTile.Y + vector.Y * 2);
-                ghostSpeed = cellSize / 8f;
-                break;
-
-            case "Clyde":
-                int distance = Math.Abs(X / cellSize - playerTile.X) + Math.Abs(Y / cellSize - playerTile.Y);
-                if (distance > 8)
-                    chasePoint = playerTile;
-                else
-                    chasePoint = new Point(1, maze.GetLength(0) - 2);
-                ghostSpeed = cellSize / 8f;
-                break;
-        }
-
-        chasePoint.X = Math.Max(1, Math.Min(chasePoint.X, maze.GetLength(1) - 2));
-        chasePoint.Y = Math.Max(1, Math.Min(chasePoint.Y, maze.GetLength(0) - 2));
-    }
+    
 }
