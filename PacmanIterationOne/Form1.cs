@@ -69,7 +69,7 @@ namespace pIterationOne
         Stopwatch swMouthTime = new Stopwatch();
         Label lblScore = new Label();
         bool threadRunning = true;
-        bool boolChase = true;
+        bool boolChase = false;
         Label lblInterface;
         Form Interface = new Form();
         Queue<string> interfaceStrings;
@@ -533,6 +533,8 @@ namespace pIterationOne
 
         private void MoveGhosts()
         {
+
+
             Point playerTile = new Point(intPlayerX / intCellSize, intPlayerY / intCellSize);
 
             foreach (Ghost ghost in listGhosts)
@@ -574,9 +576,8 @@ namespace pIterationOne
                 else if (ghost.X > targetX) ghost.dirCurrent = Direction.Left;
                 else if (ghost.Y < targetY) ghost.dirCurrent = Direction.Down;
                 else if (ghost.Y > targetY) ghost.dirCurrent = Direction.Up;
-                else ghost.dirCurrent = Direction.None;
-
-                ghost.UpdateRectangle();
+                else ghost.dirCurrent = Direction.None;               
+                    ghost.UpdateRectangle();
             }
         }
 
@@ -672,21 +673,18 @@ namespace pIterationOne
                 {
                     case Ghost.Phases.Chase:
                         ghost.currPhase = Ghost.Phases.Scatter;
-                        boolChase = true;
-                        AddStringToQueue($"{ghost.name} phase is now {ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
+                        boolChase = false;
+                        AddStringToQueue($"{ghost.name} phase is now " +
+                            $"{ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
                         break;
 
                     case Ghost.Phases.Scatter:
                         ghost.currPhase = Ghost.Phases.Chase;
-                        boolChase = false;
-                        AddStringToQueue($"{ghost.name} phase is now {ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
+                        boolChase = true;
+                        AddStringToQueue($"{ghost.name} phase is now " +
+                            $"{ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
                         break;
 
-                }
-                if (ghost.X == ghost.chasePoint.X && ghost.Y == ghost.chasePoint.Y && ghost.currPhase == Ghost.Phases.Scatter)
-                {
-                    ghost.currPhase = Ghost.Phases.Chase;
-                    AddStringToQueue($"{ghost.name} reached their scatter corner, phase is now {ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
                 }
             }
         }
@@ -731,17 +729,28 @@ namespace pIterationOne
             {
                 Thread.Sleep(100);
                 intGhostPhaCount++;
+                switch (boolChase)
+                {
+                    case true:
+                        {
+                            if (intGhostPhaCount >= 70)
+                            {
+                                SwitchGhostPhase();
+                                intGhostPhaCount = 0;
+                            }
+                        }
+                        break;
+                    case false:
+                        {
+                            if (intGhostPhaCount >= 150)
+                            {
+                                SwitchGhostPhase();
+                                intGhostPhaCount = 0;
+                            }
+                        }
+                        break;
+                }
 
-                if (boolChase && intGhostPhaCount >= 70)
-                {
-                    SwitchGhostPhase();
-                    intGhostPhaCount = 0;
-                }
-                else if (!boolChase && intGhostPhaCount >= 200)
-                {
-                    SwitchGhostPhase();
-                    intGhostPhaCount = 0;
-                }
             }
         }
 
@@ -787,6 +796,16 @@ namespace pIterationOne
                 MoveGhosts();
                 //GhostCollisionCheck();
                 UpdateGhostChasePoints();
+                foreach (Ghost ghost in listGhosts)
+                {
+                    if (ghost.X / intCellSize == ghost.chasePoint.X && ghost.Y / intCellSize == ghost.chasePoint.Y
+                    && ghost.currPhase == Ghost.Phases.Scatter)
+                    {
+                        ghost.currPhase = Ghost.Phases.Chase;
+                        AddStringToQueue($"{ghost.name} reached their scatter corner, phase is now " +
+                            $"{ghost.currPhase} at {DateTime.Now.ToLongTimeString()}");
+                    }
+                }
                 UpdateTerminal();
                 fltMouthAngle = (float)swMouthTime.Elapsed.TotalSeconds * 7;
                 Thread.Sleep(20);
