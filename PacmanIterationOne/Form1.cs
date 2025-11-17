@@ -85,6 +85,7 @@ namespace pIterationOne
             interfaceStrings = new Queue<string>(intArrayOfStrLen);
 
             InitializeComponent();
+            ResetGame();
             this.MaximizeBox = false;
 
             //choose random numbers for maze size
@@ -120,6 +121,7 @@ namespace pIterationOne
             this.Controls.Add(lblScore);
 
             //create and start game loop thread
+            /*
             thrdGameLoop = new Thread(GameLoop);
             thrdGameLoop.Start();
 
@@ -128,6 +130,7 @@ namespace pIterationOne
 
             thrdGhostPhases = new Thread(PhaseSwitch);
             thrdGhostPhases.Start();
+            */
 
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
 
@@ -754,6 +757,37 @@ namespace pIterationOne
             }
         }
 
+        private void OriginalPos()
+        {
+            foreach (Ghost ghost in listGhosts)
+            {
+                switch (ghost.name)
+                {
+                    case "Blinky":
+                        ghost.X = intCellSize * 3;
+                        ghost.Y = intCellSize;
+                        break;
+
+                    case "Pinky":
+                        ghost.X = intCellSize;
+                        ghost.Y = intCellSize * intMazeX - 2 * intCellSize;
+                        break;
+
+                    case "Inky":
+                        ghost.X = intMazeY * intCellSize - 2 * intCellSize;
+                        ghost.Y = intCellSize;
+                        break;
+
+                    case "Clyde":
+                        ghost.X = intMazeY * intCellSize - 2 * intCellSize;
+                        ghost.Y = intMazeX * intCellSize - 2 * intCellSize;
+                        break;
+                }
+            }
+            rectPlayer.X = intCellSize * 2;
+            rectPlayer.Y = intCellSize * 2;
+        }
+
         private void GhostCollisionCheck()
         {
             foreach (Ghost ghost in listGhosts)
@@ -763,26 +797,31 @@ namespace pIterationOne
                 {
                     PlayerDeath();
                     AddStringToQueue($"Collision with {ghost.name} at {DateTime.Now.ToLongTimeString()}");
+                    AddStringToQueue($"Lives are now {intPlayerLives}");
                 }
             }
         }
 
         private void PlayerDeath()
         {
-            if(--intPlayerLives < 0)
+            if(--intPlayerLives <= 0)
             {
                 ResetGame();
             }
             else
             {
-                
+                OriginalPos();
             }
         }
 
         private void ResetGame()
         {
-            StartGame();
-            threadRunning = true;
+            Thread thrdGameLoop = new Thread(GameLoop);
+            thrdGameLoop.Start();
+            Thread thrdGarbageDispose = new Thread(DisposeGarbage);
+            thrdGarbageDispose.Start();
+            Thread thrdGhostPhases = new Thread(PhaseSwitch);
+            thrdGhostPhases.Start();
         }
 
 
@@ -794,7 +833,7 @@ namespace pIterationOne
             {
                 MovePlayer();
                 MoveGhosts();
-                //GhostCollisionCheck();
+                GhostCollisionCheck();
                 UpdateGhostChasePoints();
                 foreach (Ghost ghost in listGhosts)
                 {
