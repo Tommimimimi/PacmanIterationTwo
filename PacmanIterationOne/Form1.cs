@@ -124,8 +124,8 @@ namespace pIterationOne
             this.Controls.Add(lblScore);
 
             //create and start game loop thread
-            
-               
+
+
 
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
 
@@ -167,6 +167,8 @@ namespace pIterationOne
         {
             threadRunning = false;
         }
+
+
 
         private void KeyDownEvent(object sender, KeyEventArgs e)
         {
@@ -585,8 +587,8 @@ namespace pIterationOne
                 else if (ghost.X > targetX) ghost.dirCurrent = Direction.Left;
                 else if (ghost.Y < targetY) ghost.dirCurrent = Direction.Down;
                 else if (ghost.Y > targetY) ghost.dirCurrent = Direction.Up;
-                else ghost.dirCurrent = Direction.None;               
-                    ghost.UpdateRectangle();
+                else ghost.dirCurrent = Direction.None;
+                ghost.UpdateRectangle();
             }
         }
 
@@ -725,7 +727,7 @@ namespace pIterationOne
                 Thread.Sleep(100);
                 if (++intDisposeCount >= 50)
                 {
-                    GC.Collect();               
+                    GC.Collect();
                     intDisposeCount = 0;
                     AddStringToQueue($"Garbage Collected at {DateTime.Now.ToLongTimeString()}");
                 }
@@ -810,7 +812,7 @@ namespace pIterationOne
 
         private void PlayerDeath()
         {
-            if(--intPlayerLives <= 0)
+            if (--intPlayerLives <= 0)
             {
                 //ResetGame();
             }
@@ -826,8 +828,6 @@ namespace pIterationOne
             {
                 restarted = true;
                 Application.Restart();
-                this.Invoke(this.BringToFront);
-                this.Invoke(this.Focus);
             }
 
         }
@@ -859,6 +859,12 @@ namespace pIterationOne
                 Invalidate();
             }
             return;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            this.Invoke(this.BringToFront);
+            this.Invoke(this.Focus);
         }
     }
 }

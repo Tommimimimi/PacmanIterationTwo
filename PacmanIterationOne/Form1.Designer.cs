@@ -38,6 +38,7 @@
             Name = "Form1";
             Text = "Form1";
             FormClosing += CloseForm;
+            Load += Form1_Load;
             KeyDown += KeyDownEvent;
             ResumeLayout(false);
         }
