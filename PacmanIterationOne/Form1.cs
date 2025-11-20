@@ -31,7 +31,7 @@ namespace pIterationOne
         int[,] arrMaze;
 
         //declare empty integers to define using cellsize
-        private static int
+        private int
             intPlayerX,
             intPlayerY,
             intPlayerSpeed,
@@ -48,9 +48,9 @@ namespace pIterationOne
             intDisposeCount;
 
         //declare current and next direction variables
-        static Direction
-        dirCurrent = Direction.None,
-        dirNext = Direction.None;
+        Direction
+            dirCurrent = Direction.None,
+            dirNext = Direction.None;
 
         Random rnd = new Random();
 
@@ -73,17 +73,19 @@ namespace pIterationOne
         Label lblInterface;
         Form Interface = new Form();
         Queue<string> interfaceStrings;
-        Thread mainThread;
 
 
         public Form1()
         {
             InitializeComponent();
             StartGame();
+            this.BringToFront();
+            this.Focus();
         }
 
         private void StartGame()
         {
+            this.DoubleBuffered = true;
             interfaceStrings = new Queue<string>(intArrayOfStrLen);
 
             InitializeComponent();
@@ -124,14 +126,7 @@ namespace pIterationOne
 
             //create and start game loop thread
             
-            thrdGameLoop = new Thread(GameLoop);
-            thrdGameLoop.Start();
-
-            thrdGarbageDispose = new Thread(DisposeGarbage);
-            thrdGarbageDispose.Start();
-
-            thrdGhostPhases = new Thread(PhaseSwitch);
-            thrdGhostPhases.Start();        
+               
 
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
 
@@ -159,7 +154,17 @@ namespace pIterationOne
                 Interface.Location = new Point(this.Left - Interface.Width, this.Top);
             };
 
-            this.DoubleBuffered = true;
+            thrdGameLoop = new Thread(GameLoop);
+            thrdGameLoop.Start();
+
+            thrdGarbageDispose = new Thread(DisposeGarbage);
+            thrdGarbageDispose.Start();
+
+            thrdGhostPhases = new Thread(PhaseSwitch);
+            thrdGhostPhases.Start();
+
+            this.BringToFront();
+            this.Focus();
         }
 
         private void CloseForm(object sender, FormClosingEventArgs e)
@@ -183,6 +188,10 @@ namespace pIterationOne
                     break;
                 case Keys.D:
                     dirNext = Direction.Right;
+                    break;
+
+                case Keys.R:
+                    ResetGame();
                     break;
 
                 case Keys.Up:
@@ -797,8 +806,8 @@ namespace pIterationOne
                 if (rectPlayer.IntersectsWith(rectGhost))
                 {
                     PlayerDeath();
-                    AddStringToQueue($"Collision with {ghost.name} at {DateTime.Now.ToLongTimeString()}");
-                    AddStringToQueue($"Lives are now {intPlayerLives}");
+                    //AddStringToQueue($"Collision with {ghost.name} at {DateTime.Now.ToLongTimeString()}");
+                    //AddStringToQueue($"Lives are now {intPlayerLives}");
                 }
             }
         }
@@ -807,26 +816,25 @@ namespace pIterationOne
         {
             if(--intPlayerLives <= 0)
             {
-                ResetGame();
+                //ResetGame();
             }
             else
             {
                 OriginalPos();
             }
         }
-
+        private bool restarted = false;
         private void ResetGame()
         {
-            
-            Thread thrdGameLoop = new Thread(GameLoop);
-            thrdGameLoop.Start();
-            mainThread.Suspend();
-            /*
-            Thread thrdGarbageDispose = new Thread(DisposeGarbage);
-            thrdGarbageDispose.Start();
-            Thread thrdGhostPhases = new Thread(PhaseSwitch);
-            thrdGhostPhases.Start();
-            */
+            if (!restarted)
+            {
+                restarted = true;
+                Application.Restart();
+                this.BringToFront();
+                this.Focus();
+            }
+            this.BringToFront();
+            this.Focus();
         }
 
 
