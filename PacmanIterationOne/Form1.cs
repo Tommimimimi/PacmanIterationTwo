@@ -79,7 +79,6 @@ namespace pIterationOne
         {
             InitializeComponent();
             StartGame();
-
         }
 
         private void StartGame()
@@ -168,6 +167,21 @@ namespace pIterationOne
             threadRunning = false;
         }
 
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            this.Focus();
+            this.Select();
+            BringFormToFront();
+        }
+
+        private void BringFormToFront()
+        {
+            this.Interface.TopMost = true;
+            this.Interface.TopMost = false;
+            this.TopMost = true;
+            this.TopMost = false;
+            this.Activate();            
+        }
 
 
         private void KeyDownEvent(object sender, KeyEventArgs e)
@@ -625,14 +639,14 @@ namespace pIterationOne
                                 Point InkyTarget = playerTile;
                                 switch (dirCurrent)
                                 {
-                                    case Direction.Up: InkyTarget.Y += 4; break;
-                                    case Direction.Down: InkyTarget.Y -= 4; break;
-                                    case Direction.Left: InkyTarget.X += 4; break;
-                                    case Direction.Right: InkyTarget.X -= 4; break;
+                                    case Direction.Up: InkyTarget.Y -= 2; break;
+                                    case Direction.Down: InkyTarget.Y += 2; break;
+                                    case Direction.Left: InkyTarget.X -= 2; break;
+                                    case Direction.Right: InkyTarget.X += 2; break;
                                 }
                                 InkyTarget.X = Math.Clamp(InkyTarget.X, 0, intMazeY - 1);
-                                InkyTarget.Y = Math.Clamp(InkyTarget.Y, 0, intMazeX - 1
-                                );
+                                InkyTarget.Y = Math.Clamp(InkyTarget.Y, 0, intMazeX - 1);
+                                ghost.chasePoint = InkyTarget;
                                 break;
 
                             case "Clyde":
@@ -829,7 +843,8 @@ namespace pIterationOne
                 restarted = true;
                 Application.Restart();
             }
-
+            this.Invoke(this.BringToFront);
+            this.Invoke(this.Focus);
         }
 
 
@@ -859,12 +874,6 @@ namespace pIterationOne
                 Invalidate();
             }
             return;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            this.Invoke(this.BringToFront);
-            this.Invoke(this.Focus);
-        }
+        }        
     }
 }
