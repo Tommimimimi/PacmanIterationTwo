@@ -804,7 +804,7 @@ namespace pIterationOne
             
             await Task.Delay(3000); //pinky leaves
             if (listGhosts.Count < 2)
-            { listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.Pink, arrMaze, intCellSize, "Pinky", this, new Point(1, 1), Ghost.Phases.Chase)); }
+            { listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.DeepPink, arrMaze, intCellSize, "Pinky", this, new Point(1, 1), Ghost.Phases.Chase)); }
             
             await Task.Delay(5000); //inky leaves
             if (listGhosts.Count < 3)
