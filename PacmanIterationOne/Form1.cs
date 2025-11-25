@@ -823,35 +823,33 @@ namespace pIterationOne
                     boolClyde = true;
                 }
             }
-            
+
+            await Task.Delay(2000); //blinky leaves
             if (!boolBlinky)
             {
-                await Task.Delay(2000); //blinky leaves
                 listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.Red, arrMaze, intCellSize, "Blinky", this, new Point(1, 1), Ghost.Phases.Chase));
-                boolBlinky = true;
+                boolBlinky = false;
             }
 
             
-            
+            await Task.Delay(3000); //pinky leaves
             if (!boolPinky)
-            {
-                await Task.Delay(3000); //pinky leaves
+            { 
                 listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.Pink, arrMaze, intCellSize, "Pinky", this, new Point(1, 1), Ghost.Phases.Chase));
-                boolPinky = true;      
+                boolPinky = true;
+            
             }
             
-            
+            await Task.Delay(5000); //inky leaves
             if (!boolInky)
-            {
-                await Task.Delay(5000); //inky leaves
+            { 
                 listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.Cyan, arrMaze, intCellSize, "Inky", this, new Point(1, 1), Ghost.Phases.Chase));
                 boolInky = true;
             }
             
-            
+            await Task.Delay(7000); //clyde leaves
             if (!boolClyde)
-            {
-                await Task.Delay(7000); //clyde leaves
+                { 
                 listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y, Color.Orange, arrMaze, intCellSize, "Clyde", this, new Point(1, 1), Ghost.Phases.Chase));
                 boolClyde = true;
             }
