@@ -89,6 +89,7 @@ namespace pIterationOne
             rectSpawnPoint;
 
 
+        //set up resources
         List<Ghost> listGhosts = new List<Ghost>();
         Brush brush = new SolidBrush(Color.FromArgb(200, 20, 20, 20));
         Stopwatch swMouthTime = new Stopwatch();
@@ -108,7 +109,6 @@ namespace pIterationOne
             interfaceStrings = new Queue<string>(intArrayOfStrLen);
 
             InitializeComponent();
-            this.MaximizeBox = false;
 
             //choose random numbers for maze size
             intMazeX = rnd.Next(4, 6);
@@ -137,12 +137,10 @@ namespace pIterationOne
             lblScore.BackColor = Color.Transparent;
             this.Controls.Add(lblScore);
 
-            //create and start game loop thread
-
-
-
+            //set point of form to right
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
 
+            //interface set up
             Interface.Text = "Interface";
             Interface.Size = new Size(400, this.Size.Height);
             Interface.StartPosition = FormStartPosition.Manual;
@@ -154,6 +152,8 @@ namespace pIterationOne
                 Interface.Location = new Point(this.Left - Interface.Width, this.Top);
 
             };
+
+            //setting label for interface to add text
             lblInterface = new Label();
             lblInterface.Location = new Point(0, 0);
             lblInterface.Size = new Size(Interface.ClientSize.Width, Interface.ClientSize.Height);
@@ -167,6 +167,7 @@ namespace pIterationOne
                 Interface.Location = new Point(this.Left - Interface.Width, this.Top);
             };
 
+            //initialize threads 
             thrdGameLoop = new Thread(GameLoop);
             thrdGameLoop.Start();
 
@@ -176,6 +177,7 @@ namespace pIterationOne
             thrdGhostPhases = new Thread(PhaseSwitch);
             thrdGhostPhases.Start();
 
+            //bring and focus front
             this.BringToFront();
             this.Focus();
         }
@@ -220,10 +222,12 @@ namespace pIterationOne
                     dirNext = Direction.Right;
                     break;
 
+                //reset game button set to R
                 case Keys.R:
                     ResetGame();
                     break;
 
+                //arrow key support
                 case Keys.Up:
                     dirNext = Direction.Up;
                     break;
@@ -253,6 +257,7 @@ namespace pIterationOne
 
         private void MazePathing(int paraRow, int paraCol)
         {
+            //set original pathing
             arrMaze[paraRow, paraCol] = 0;
 
             List<Direction> mazeDirections = new List<Direction>
@@ -260,6 +265,7 @@ namespace pIterationOne
                 Direction.Up, Direction.Down, Direction.Left, Direction.Right
             };
 
+            //Fischer Yates shuffle
             for (int i = 0; i < mazeDirections.Count; i++)
             {
                 int swapIndex = rnd.Next(i, mazeDirections.Count);
