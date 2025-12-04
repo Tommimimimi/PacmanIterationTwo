@@ -70,6 +70,7 @@ namespace pIterationOne
         bool
             threadRunning = true,
             boolChase = false,
+            boolGhosts = false,
             restarted = false;
 
         //declare thread
@@ -79,15 +80,14 @@ namespace pIterationOne
             thrdGhostPhases;
 
         //declare label
-        Label
-            lblScore,
-            lblInterface;
+        Label 
+            lblScore = new Label(),
+            lblInterface = new Label();
 
         //declare rectangle
         Rectangle
             rectPlayer,
             rectSpawnPoint;
-
 
         //set up resources
         List<Ghost> listGhosts = new List<Ghost>();
@@ -131,11 +131,11 @@ namespace pIterationOne
 
 
             //creating the label and setting attributes
-            lblScore.Location = new Point(ClientSize.Width - lblScore.Width * 2, 0);
             lblScore.Size = new Size(intCellSize * 10, intCellSize);
             lblScore.Font = new Font("Comic Sans MS", 20);
             lblScore.BackColor = Color.Transparent;
             this.Controls.Add(lblScore);
+            lblScore.Location = new Point(ClientSize.Width - lblScore.Width * 2, 0);
 
             //set point of form to right
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
@@ -841,17 +841,21 @@ namespace pIterationOne
 
         private async void ReleaseGhosts()
         {
-            await Task.Delay(2000); //blinky leaves
-            TryRelease(GhostColors.Keys.ToArray()[0]);
+            while (boolGhosts == false)
+            {
+                await Task.Delay(2000); //blinky leaves
+                TryRelease(GhostColors.Keys.ToArray()[0]);
 
-            await Task.Delay(3000); //pinky leaves
-            TryRelease(GhostColors.Keys.ToArray()[1]);
+                await Task.Delay(3000); //pinky leaves
+                TryRelease(GhostColors.Keys.ToArray()[1]);
 
-            await Task.Delay(5000); //inky leaves
-            TryRelease(GhostColors.Keys.ToArray()[2]);
+                await Task.Delay(5000); //inky leaves
+                TryRelease(GhostColors.Keys.ToArray()[2]);
 
-            await Task.Delay(7000); //clyde leaves
-            TryRelease(GhostColors.Keys.ToArray()[3]);
+                await Task.Delay(7000); //clyde leaves
+                TryRelease(GhostColors.Keys.ToArray()[3]);
+            }
+            boolGhosts = true;
         }
 
         private void OriginalPos()
@@ -906,6 +910,15 @@ namespace pIterationOne
             }
         }
 
+        private void SpawnGhosts()
+        {
+            listGhosts.Clear();
+            listGhosts = new List<Ghost>();
+            if (boolGhosts == false)
+            {
+                ReleaseGhosts();
+            }
+        }
 
         private void GameLoop()
         {
@@ -914,7 +927,7 @@ namespace pIterationOne
             while (threadRunning)
             {
                 MovePlayer();
-                ReleaseGhosts();
+                SpawnGhosts();
                 MoveGhosts();
                 GhostCollisionCheck();
                 UpdateGhostChasePoints();
@@ -934,6 +947,7 @@ namespace pIterationOne
                 {
                     OriginalPos();
                     MazeCreate();
+                    SpawnGhosts();
                 }
                 Thread.Sleep(20);
                 Invalidate();
