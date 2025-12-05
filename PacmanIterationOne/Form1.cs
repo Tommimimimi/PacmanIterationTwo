@@ -69,6 +69,7 @@ namespace pIterationOne
 
         //mouth angle
         float fltMouthAngle = 0;
+        float fltDeathAngle = 0;
 
         //guard for ghost list
         private readonly object ghostLock = new();
@@ -84,6 +85,8 @@ namespace pIterationOne
             threadRunning = true,
             boolChase = false,
             boolGhosts = false,
+            boolDeath = false,
+            boolCollision = true,
             restarted = false;
 
         //declare thread
@@ -143,6 +146,7 @@ namespace pIterationOne
             rectPlayer = new Rectangle(intPlayerX, intPlayerY, intCellSize, intCellSize);
             intPlayerLives = 3;
 
+
             ghostReleaseCTS = new CancellationTokenSource();
 
             //creating the label and setting attributes
@@ -150,7 +154,7 @@ namespace pIterationOne
             lblScore.Font = new Font("Comic Sans MS", 20);
             lblScore.BackColor = Color.Transparent;
             this.Controls.Add(lblScore);
-            lblScore.Location = new Point(ClientSize.Width - lblScore.Width * 2, 0);
+            lblScore.Location = new Point((intCellSize * intMazeY) - (lblScore.Width * 2), 0);
 
             //set point of form to right
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
@@ -165,7 +169,6 @@ namespace pIterationOne
             Interface.Shown += (s, e) =>
             {
                 Interface.Location = new Point(this.Left - Interface.Width, this.Top);
-
             };
 
             //setting label for interface to add text
@@ -469,8 +472,16 @@ namespace pIterationOne
                 }
             }
             g.FillRectangle(Brushes.Black, rectSpawnPoint);
-            float MouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
-            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + (MouthAngle), 360 - (2 * MouthAngle));
+            float mouthAngle = 0;
+            if (!boolDeath)
+            {
+                mouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
+            }
+            else
+            {
+                mouthAngle = fltDeathAngle;
+            }
+            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + (mouthAngle), 360 - (2 * mouthAngle));
 
             Ghost[] ghosts = [.. listGhosts];
             lock (ghostLock)
@@ -483,6 +494,19 @@ namespace pIterationOne
             g.FillEllipse(Brushes.FloralWhite, rectSpawnPoint);
             lblScore.Text = "Score: " + Convert.ToString(intScore);
         }
+
+        private void DeathAnimation()
+        {
+            boolDeath = true;
+            while (fltDeathAngle < 180)
+            {
+                fltDeathAngle += 20;
+                dirCurrent = Direction.Up;
+                Invalidate();
+                Thread.Sleep(200);
+            }
+        }
+
         private void MovePlayer()
         {
 
@@ -911,6 +935,8 @@ namespace pIterationOne
             ghostReleaseCTS = new CancellationTokenSource();
 
             boolGhosts = false;
+            boolDeath = false;
+            boolCollision = true;
 
             intPlayerX = intCellSize;
             intPlayerY = intCellSize;
@@ -919,12 +945,6 @@ namespace pIterationOne
 
             ReleaseGhosts(ghostReleaseCTS.Token);
         }
-
-
-
-
-
-        bool boolDeath = false;
 
         private void GhostCollisionCheck()
         {
@@ -954,8 +974,10 @@ namespace pIterationOne
             }
             else
             {
+                DeathAnimation();
                 OriginalPos();
-                boolDeath = false;
+                boolDeath = true;
+                boolCollision = false;
             }
         }
 
@@ -981,13 +1003,13 @@ namespace pIterationOne
         private void GameLoop()
         {
             MazeCreate();
-            swMouthTime.Start();
             while (threadRunning)
-            {
+            {           
                 MovePlayer();
                 SpawnGhosts();
                 MoveGhosts();
-                GhostCollisionCheck();
+                if (boolCollision)
+                    GhostCollisionCheck();
                 UpdateGhostChasePoints();
                 lock (ghostLock)
                 {
