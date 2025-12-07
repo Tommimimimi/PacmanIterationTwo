@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System;
 using System.Runtime.CompilerServices;
 using System.Numerics;
@@ -69,6 +69,7 @@ namespace pIterationOne
 
         //mouth angle
         float fltMouthAngle = 0;
+        float fltDeathAngle = 0;
 
         //guard for ghost list
         private readonly object ghostLock = new();
@@ -84,20 +85,23 @@ namespace pIterationOne
             threadRunning = true,
             boolChase = false,
             boolGhosts = false,
+            boolDeath = false,
+            boolCollision = true,
+            boolReady = false,
             restarted = false;
 
-        //declare thread
+        //declare threads
         Thread
             thrdGameLoop,
             thrdGarbageDispose,
             thrdGhostPhases;
 
-        //declare label
+        //declare labels
         Label
             lblScore = new Label(),
             lblInterface = new Label();
 
-        //declare rectangle
+        //declare rectangles
         Rectangle
             rectPlayer,
             rectSpawnPoint;
@@ -109,6 +113,8 @@ namespace pIterationOne
         Form Interface = new Form();
         Queue<string> interfaceStrings;
         Random rnd = new Random();
+
+        //cancellation token to stop previous ghosts releasing
         private CancellationTokenSource ghostReleaseCTS;
 
         public Form1()
@@ -145,12 +151,14 @@ namespace pIterationOne
 
             ghostReleaseCTS = new CancellationTokenSource();
 
+            ghostReleaseCTS = new CancellationTokenSource();
+
             //creating the label and setting attributes
             lblScore.Size = new Size(intCellSize * 10, intCellSize);
             lblScore.Font = new Font("Comic Sans MS", 20);
             lblScore.BackColor = Color.Transparent;
             this.Controls.Add(lblScore);
-            lblScore.Location = new Point(ClientSize.Width - lblScore.Width * 2, 0);
+            lblScore.Location = new Point((intCellSize * intMazeY) - (lblScore.Width * 2), 0);
 
             //set point of form to right
             this.Location = new Point(Screen.FromControl(this).Bounds.Right - this.Width, 0);
@@ -165,7 +173,6 @@ namespace pIterationOne
             Interface.Shown += (s, e) =>
             {
                 Interface.Location = new Point(this.Left - Interface.Width, this.Top);
-
             };
 
             //setting label for interface to add text
@@ -199,11 +206,13 @@ namespace pIterationOne
 
         private void CloseForm(object sender, FormClosingEventArgs e)
         {
+            //exit threads for smooth shutdown
             threadRunning = false;
         }
 
         private void Form1_Shown(object sender, EventArgs e)
         {
+            //focus and bring form to front for keyboard activation
             this.Focus();
             this.Select();
             BringFormToFront();
@@ -223,7 +232,7 @@ namespace pIterationOne
         {
             switch (e.KeyCode)
             {
-                //movement up, down, left, right respectively
+                //movement up, down, left, right respectively with WASD
                 case Keys.W:
                     dirNext = Direction.Up;
                     break;
@@ -272,15 +281,16 @@ namespace pIterationOne
 
         private void MazePathing(int paraRow, int paraCol)
         {
-            //set original pathing
+            //mark current cell empty
             arrMaze[paraRow, paraCol] = 0;
 
+            //create list of all possible directions (4-directional)
             List<Direction> mazeDirections = new List<Direction>
             {
                 Direction.Up, Direction.Down, Direction.Left, Direction.Right
             };
 
-            //Fischer Yates shuffle
+            //Fischer Yates shuffle to ensure all recursions are randomly ordered
             for (int i = 0; i < mazeDirections.Count; i++)
             {
                 int swapIndex = rnd.Next(i, mazeDirections.Count);
@@ -289,13 +299,16 @@ namespace pIterationOne
                 mazeDirections[swapIndex] = temp;
             }
 
+            //loops through each direction in list
             foreach (var direction in mazeDirections)
             {
+                //creates values to check for out of bounds / already checked cells
                 int testRow = paraRow;
                 int testCol = paraCol;
 
                 switch (direction)
                 {
+                    //sets test values according to current direction
                     case Direction.Up:
                         testRow = paraRow - 2;
                         break;
@@ -310,9 +323,11 @@ namespace pIterationOne
                         break;
                 }
 
+                //checks if cell being looked at is valid and a wall
                 if (testRow > 0 && testRow < intMazeX && testCol > 0 && testCol < intMazeY
                     && arrMaze[testRow, testCol] == 1)
                 {
+                    //continues if it is
                     arrMaze[(paraRow + testRow) / 2, (paraCol + testCol) / 2] = 0;
                     MazePathing(testRow, testCol);
                 }
@@ -324,9 +339,9 @@ namespace pIterationOne
             {
                 for (int col = 1; col < intMazeY - 1; col++)
                 {
-                    if (arrMaze[row, col] == -1)
-                        return;
+                    //set walls check to 0
                     int walls = 0;
+
                     //stores the cell opposite the single open cell within a deadend
                     Direction? dirOpenCell = null;
 
@@ -342,6 +357,7 @@ namespace pIterationOne
                     if (arrMaze[row, col + 1] == 1) { walls++; }
                     else { dirOpenCell = Direction.Left; }
 
+                    //checks for deadend
                     if (walls == 3)
                     {
                         switch (dirOpenCell)
@@ -365,6 +381,7 @@ namespace pIterationOne
         }
         private void BoundaryReadd()
         {
+            //go through each dimension setting 0 values to 1
             for (int row = 0; row < intMazeX; row++)
             {
                 arrMaze[row, 0] = 1;
@@ -385,6 +402,7 @@ namespace pIterationOne
 
         private void PelletAdd()
         {
+            //iterate through maze empty slots to set value to 2(pellets)
             for (int x = 0; x < intMazeX; x++)
             {
                 for (int y = 0; y < intMazeY; y++)
@@ -401,8 +419,8 @@ namespace pIterationOne
 
         private void FindSuitableGhostSpawn()
         {
-            int spawnX = intMazeX / 2 - 1;
-            int spawnY = intMazeY / 2 + 1;
+            int spawnX = intMazeX / 2 + 3;
+            int spawnY = intMazeY / 2 + 3;
             bool suitableSpawn = false;
             while (!suitableSpawn)
             {
@@ -415,6 +433,7 @@ namespace pIterationOne
                 else
                 {
                     spawnX += 1;
+                    spawnY += 1;
                 }
             }
 
@@ -469,8 +488,21 @@ namespace pIterationOne
                 }
             }
             g.FillRectangle(Brushes.Black, rectSpawnPoint);
-            float MouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
-            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + (MouthAngle), 360 - (2 * MouthAngle));
+            float mouthAngle;
+            if (boolDeath)
+            {
+                //angles for death animation
+                mouthAngle = fltDeathAngle;
+            }
+            else
+            {
+                //regular waka waka animation
+                mouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
+            }
+
+            //always draw yellow man waka angle
+            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
+
 
             Ghost[] ghosts = [.. listGhosts];
             lock (ghostLock)
@@ -483,6 +515,19 @@ namespace pIterationOne
             g.FillEllipse(Brushes.FloralWhite, rectSpawnPoint);
             lblScore.Text = "Score: " + Convert.ToString(intScore);
         }
+
+        private void DeathAnimation()
+        {
+            while (fltDeathAngle < 180)
+            {
+                fltDeathAngle += 15;
+                dirCurrent = Direction.Up;
+                Invalidate();
+                Thread.Sleep(225);
+            }
+            boolDeath = false;
+        }
+
         private void MovePlayer()
         {
 
@@ -614,19 +659,6 @@ namespace pIterationOne
             return IsValidMove(newX, newY, rectGhost, false);
         }
 
-
-
-        private int BreadthDifference(int paraValueOne, int paraValueTwo)
-        {
-            //returns distance between greatest point and lowest point ensuring that
-            //a positive value will be returned(due to neither coordinates being negative)
-            if (paraValueOne > paraValueTwo)
-                return paraValueOne - paraValueTwo;
-            return paraValueTwo - paraValueOne;
-
-        }
-
-
         private void MoveGhosts()
         {
             Point playerTile = new Point(intPlayerX / intCellSize, intPlayerY / intCellSize);
@@ -681,89 +713,83 @@ namespace pIterationOne
 
         private void UpdateGhostChasePoints()
         {
-            // Player's tile
-            Point playerTile = new Point(intPlayerX / intCellSize, intPlayerY / intCellSize);
+            //adds player point for parameter passing
+            Point playerTile = new(intPlayerX / intCellSize, intPlayerY / intCellSize);
+
             lock (ghostLock)
             {
                 foreach (Ghost ghost in listGhosts)
                 {
-                    switch (ghost.currPhase)
+                    ghost.chasePoint = ghost.currPhase 
+                        switch
                     {
-                        case Ghost.Phases.Chase:
-                            switch (ghost.name)
-                            {
-                                case "Blinky":
-                                    ghost.chasePoint = playerTile;
-                                    break;
+                        //checks if ghost is in chase or scatter and gets relevant point
+                        Ghost.Phases.Chase => GetChaseTarget(ghost, playerTile),
+                        Ghost.Phases.Scatter => GetScatterTarget(ghost),
 
-                                case "Pinky":
-                                    Point pinkyTarget = playerTile;
-                                    switch (dirCurrent)
-                                    {
-                                        case Direction.Up: pinkyTarget.Y -= 4; break;
-                                        case Direction.Down: pinkyTarget.Y += 4; break;
-                                        case Direction.Left: pinkyTarget.X -= 4; break;
-                                        case Direction.Right: pinkyTarget.X += 4; break;
-                                    }
-                                    pinkyTarget.X = Math.Clamp(pinkyTarget.X, 0, intMazeY - 1);
-                                    pinkyTarget.Y = Math.Clamp(pinkyTarget.Y, 0, intMazeX - 1);
-                                    ghost.chasePoint = pinkyTarget;
-                                    break;
-
-                                case "Inky":
-                                    Point InkyTarget = playerTile;
-                                    switch (dirCurrent)
-                                    {
-                                        case Direction.Up: InkyTarget.Y -= 2; break;
-                                        case Direction.Down: InkyTarget.Y += 2; break;
-                                        case Direction.Left: InkyTarget.X -= 2; break;
-                                        case Direction.Right: InkyTarget.X += 2; break;
-                                    }
-                                    InkyTarget.X = Math.Clamp(InkyTarget.X, 0, intMazeY - 1);
-                                    InkyTarget.Y = Math.Clamp(InkyTarget.Y, 0, intMazeX - 1);
-                                    ghost.chasePoint = InkyTarget;
-                                    break;
-
-                                case "Clyde":
-                                    int distX = Math.Abs(ghost.X / intCellSize - playerTile.X);
-                                    int distY = Math.Abs(ghost.Y / intCellSize - playerTile.Y);
-                                    if (distX + distY > 8)
-                                    {
-                                        ghost.chasePoint = playerTile;
-                                    }
-                                    else
-                                    {
-                                        ghost.chasePoint = new Point(1, intMazeX - 2);
-                                    }
-                                    break;
-                            }
-                            break;
-                        case Ghost.Phases.Scatter:
-                            switch (ghost.name)
-                            {
-                                case "Blinky":
-                                    ghost.chasePoint = new Point(intMazeY - 3, 1);
-                                    break;
-
-                                case "Pinky":
-                                    ghost.chasePoint = new Point(1, 1);
-                                    break;
-
-                                case "Inky":
-                                    ghost.chasePoint = new Point(intMazeY - 2, intMazeX - 2);
-                                    break;
-
-                                case "Clyde":
-                                    ghost.chasePoint = playerTile;
-                                    break;
-                            }
-                            break;
-
-                    }
-
+                        //else get current chase point
+                        _ => ghost.chasePoint
+                    };
                 }
             }
         }
+
+        private Point GetChaseTarget(Ghost ghost, Point playerTile)
+        {
+            return ghost.name switch
+            {
+                //sets chase points for the ghosts
+                "Blinky" => playerTile,
+                "Pinky" => OffsetTarget(playerTile, dirCurrent, 4),
+                "Inky" => OffsetTarget(playerTile, dirCurrent, 2),
+                "Clyde" => GetClydeTarget(ghost, playerTile),
+                _ => playerTile
+            };
+        }
+
+        private Point GetScatterTarget(Ghost ghost)
+        {
+            return ghost.name switch
+            {
+                "Blinky" => new Point(intMazeY - 3, 1),
+                "Pinky" => new Point(1, 1),
+                "Inky" => new Point(intMazeY - 2, intMazeX - 2),
+                "Clyde" => new Point(intPlayerX / intCellSize, intPlayerY / intCellSize),
+                //else new point (0, 0) to prevent errors (ensures target always has a value)
+                _ => new Point(0, 0)
+            };
+        }
+
+        private Point OffsetTarget(Point basePoint, Direction dir, int offset)
+        {
+            //sets and declares base to target(player)
+            Point target = basePoint;
+            switch (dir)
+            {
+                //adds or subtracts to axis respectively by offset amount
+                case Direction.Up: target.Y -= offset; break;
+                case Direction.Down: target.Y += offset; break;
+                case Direction.Left: target.X -= offset; break;
+                case Direction.Right: target.X += offset; break;
+            }
+
+            //ensure target is within bounds of array 
+            target.X = Math.Clamp(target.X, 0, intMazeY - 1);
+            target.Y = Math.Clamp(target.Y, 0, intMazeX - 1);
+
+            //return the target
+            return target;
+        }
+
+        private Point GetClydeTarget(Ghost ghost, Point playerTile)
+        {
+            int distX = Math.Abs(ghost.X / intCellSize - playerTile.X);
+            int distY = Math.Abs(ghost.Y / intCellSize - playerTile.Y);
+
+            //returns bottom left corner point if less than 8 away from player
+            return (distX + distY > 8) ? playerTile : new Point(1, intMazeX - 2);
+        }
+
 
         private void SwitchGhostPhase()
         {
@@ -817,7 +843,7 @@ namespace pIterationOne
             while (threadRunning)
             {
                 Thread.Sleep(1000);
-                if (++intDisposeCount >= 50)
+                if (++intDisposeCount >= 7)
                 {
                     GC.Collect();
                     intDisposeCount = 0;
@@ -830,13 +856,14 @@ namespace pIterationOne
         {
             while (threadRunning)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
                 intGhostPhaCount++;
                 switch (boolChase)
                 {
                     case true:
                         {
-                            if (intGhostPhaCount >= 70)
+                            //count for how many seconds ghosts are in chase
+                            if (intGhostPhaCount >= 7)
                             {
                                 SwitchGhostPhase();
                                 intGhostPhaCount = 0;
@@ -845,7 +872,8 @@ namespace pIterationOne
                         break;
                     case false:
                         {
-                            if (intGhostPhaCount >= 150)
+                            //count for how many seconds ghosts are in scatter
+                            if (intGhostPhaCount >= 15)
                             {
                                 SwitchGhostPhase();
                                 intGhostPhaCount = 0;
@@ -859,39 +887,43 @@ namespace pIterationOne
 
         private void TryRelease(string name)
         {
-            if (ghostReleased[name]) return; //spawnned already
+            //spawnned already
+            if (ghostReleased[name]) return;
 
             listGhosts.Add(new Ghost(rectSpawnPoint.X, rectSpawnPoint.Y,
                 GhostColors[name], arrMaze, intCellSize, name, this,
                 new Point(1, 1), Ghost.Phases.Chase));
 
-            ghostReleased[name] = true; //mark released
+            //mark released
+            ghostReleased[name] = true; 
         }
 
 
         private async void ReleaseGhosts(CancellationToken token)
         {
+            //return if already attempted
             if (boolGhosts) return;
 
+            //ghosts have attempted to release
             boolGhosts = true;
 
             try
             {
-                await Task.Delay(2000, token); // Blinky
+                await Task.Delay(2000, token); // blinky
                 TryRelease("Blinky");
 
-                await Task.Delay(3000, token); // Pinky
+                await Task.Delay(3000, token); //pinky
                 TryRelease("Pinky");
 
-                await Task.Delay(5000, token); // Inky
+                await Task.Delay(5000, token); //inky
                 TryRelease("Inky");
 
-                await Task.Delay(7000, token); // Clyde
+                await Task.Delay(7000, token); //clyde
                 TryRelease("Clyde");
             }
             catch (TaskCanceledException)
             {
-                // Task was cancelled, just exit
+                return;
             }
         }
 
@@ -900,6 +932,7 @@ namespace pIterationOne
         {
             lock (ghostLock)
             {
+                //clear ghosts and set keys to false for ghosts
                 listGhosts.Clear();
 
                 foreach (var key in ghostReleased.Keys.ToList())
@@ -910,21 +943,19 @@ namespace pIterationOne
             ghostReleaseCTS?.Cancel();
             ghostReleaseCTS = new CancellationTokenSource();
 
-            boolGhosts = false;
-
+            //reset player attributes and create a new rectangle for them
             intPlayerX = intCellSize;
             intPlayerY = intCellSize;
             intPlayerSpeed = intCellSize / 8;
+            dirCurrent = Direction.Right;
             rectPlayer = new Rectangle(intPlayerX, intPlayerY, intCellSize, intCellSize);
 
+            //1.5 second delay
+            ShowGetReady(1500);
+
+            //release ghost sequence activation
             ReleaseGhosts(ghostReleaseCTS.Token);
         }
-
-
-
-
-
-        bool boolDeath = false;
 
         private void GhostCollisionCheck()
         {
@@ -932,7 +963,9 @@ namespace pIterationOne
             {
                 foreach (Ghost ghost in listGhosts)
                 {
+                    //creates rectangle for each ghost
                     Rectangle rectGhost = new Rectangle(ghost.X, ghost.Y, intCellSize, intCellSize);
+                    //check collision then set flag true
                     if (rectPlayer.IntersectsWith(rectGhost))
                     {
                         AddStringToQueue($"Collision with {ghost.name} at {DateTime.Now.ToLongTimeString()}");
@@ -942,29 +975,52 @@ namespace pIterationOne
                     }
                 }
             }
+            //kill player after foreach to prevent list modification during loop
             if (boolDeath)
                 PlayerDeath();
         }
 
         private void PlayerDeath()
         {
+            //death = true to play animation and turn off
+            //collision so only one life is removed
+            boolDeath = true;
+            boolCollision = false;
+            fltDeathAngle = 0;
+            swMouthTime.Reset();
+
+            //play animation
+            DeathAnimation();
+
+            //remove life and check to see if game over
             if (--intPlayerLives <= 0)
             {
                 ResetGame();
+                return;
             }
-            else
-            {
-                OriginalPos();
-                boolDeath = false;
-            }
+
+            //reset original positions and make death false
+            //for normal animation and add back collision
+            OriginalPos();
+            boolDeath = false;
+            boolCollision = true;
+            //allow ghosts to respawn
+            boolGhosts = false;
         }
+
+
 
         private void ResetGame()
         {
             if (!restarted)
             {
+                //ensures restart only occurs once
                 restarted = true;
+
+                //restarts the whole of the form
                 Application.Restart();
+
+                //focuses and emphasises the form giving keyboard control
                 this.BringToFront();
                 this.Focus();
             }
@@ -972,22 +1028,43 @@ namespace pIterationOne
 
         private void SpawnGhosts()
         {
+            //checks if the list is empty and also checks to see that the procedure is not called
             if (listGhosts.Count == 0 && !boolGhosts)
             {
-                ReleaseGhosts(ghostReleaseCTS.Token); //start sequence
+                ReleaseGhosts(ghostReleaseCTS.Token);
             }
         }
+
+        private void ShowGetReady(int milliseconds)
+        {
+            //freeze movement
+            boolReady = false;
+            AddStringToQueue("GET READY!");
+            
+            //force redraw
+            Invalidate();
+
+            //block movement for this period
+            Thread.Sleep(milliseconds);
+
+            // unfreeze movement
+            boolReady = true; 
+        }
+
 
         private void GameLoop()
         {
             MazeCreate();
-            swMouthTime.Start();
+            //1.5 second delay
+            ShowGetReady(1500);
+
             while (threadRunning)
             {
                 MovePlayer();
                 SpawnGhosts();
                 MoveGhosts();
-                GhostCollisionCheck();
+                if (boolCollision)
+                    GhostCollisionCheck();
                 UpdateGhostChasePoints();
                 lock (ghostLock)
                 {
