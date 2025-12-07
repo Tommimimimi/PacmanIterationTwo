@@ -1059,7 +1059,7 @@ namespace pIterationOne
             ShowGetReady(1500);
 
             while (threadRunning)
-            {
+            {           
                 MovePlayer();
                 SpawnGhosts();
                 MoveGhosts();
