@@ -499,23 +499,33 @@ namespace pIterationOne
                 //regular waka waka animation
                 mouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
             }
-
-            //draw pacman on top
-            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
-
-
-            Ghost[] ghosts = [.. listGhosts];
-            lock (ghostLock)
+            int intLifeSpacing = 0;
+            int intLifeX = 0;
+            int intLifeY = intMazeY * intCellSize - intCellSize;
+            for (int i = 0; i < intPlayerLives + 1; i++)
             {
-                foreach (Ghost ghost in ghosts)
-                {
-                    ghost.DrawAsPacman(g, ghost.dirCurrent, mouthAngle);
-                }
+                DrawLife(g, intLifeX * i, 0, intLifeSpacing);               
             }
-            g.FillEllipse(Brushes.FloralWhite, rectSpawnPoint);
-            lblScore.Text = "Score: " + Convert.ToString(intScore);
+                //draw pacman on top
+                g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
+
+
+                Ghost[] ghosts = [.. listGhosts];
+                lock (ghostLock)
+                {
+                    foreach (Ghost ghost in ghosts)
+                    {
+                        ghost.DrawAsPacman(g, ghost.dirCurrent, mouthAngle);
+                    }
+                }
+                g.FillEllipse(Brushes.FloralWhite, rectSpawnPoint);
+                lblScore.Text = "Score: " + Convert.ToString(intScore);  
         }
 
+        private void DrawLife(Graphics g, int pX, int pY, int pSpacing)
+        {
+            g.FillRectangle(Brushes.Yellow, new Rectangle(pX + pSpacing, pY, intCellSize, intCellSize));
+        }
         private void DeathAnimation()
         {
             while (fltDeathAngle < 180)
@@ -670,8 +680,12 @@ namespace pIterationOne
                 {
                     Point ghostTile = new Point(ghost.X / intCellSize, ghost.Y / intCellSize);
 
-                    // Check if ghost is stuck (position didn't change)
+                    //Check if ghost is stuck (position didn't change)
                     bool stuck = (ghost.X == ghost.prevX && ghost.Y == ghost.prevY);
+                    if (ghost.X % intCellSize == 0 && ghost.Y % intCellSize == 0 || stuck)
+                    {
+                        ghost.nextTile = BFS.GetNextTileBFS(arrMaze, ghostTile, ghost.chasePoint);
+                    }
 
                     // Only pick a new tile if reached next tile or stuck
                     if (stuck)
@@ -1079,7 +1093,7 @@ namespace pIterationOne
                 }
                 UpdateTerminal();
                 fltMouthAngle = (float)swMouthTime.Elapsed.TotalSeconds * 7;
-                if (intPelletCount <= 150)
+                if (intPelletCount <= 0)
                 {
                     //death = true to play animation and turn off
                     //collision so only one life is removed
