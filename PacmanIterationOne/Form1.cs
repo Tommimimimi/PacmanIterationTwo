@@ -487,6 +487,7 @@ namespace pIterationOne
                     }
                 }
             }
+            
             g.FillRectangle(Brushes.Black, rectSpawnPoint);
             float mouthAngle;
             if (boolDeath)
@@ -499,15 +500,14 @@ namespace pIterationOne
                 //regular waka waka animation
                 mouthAngle = (MathF.Sin(fltMouthAngle * 3 + float.Pi / 6) + 0.9f) * 20;
             }
-            int intLifeSpacing = 0;
-            int intLifeX = 0;
-            int intLifeY = intMazeY * intCellSize - intCellSize;
-            for (int i = 0; i < intPlayerLives + 1; i++)
+
+            for (int i = 0; i < intPlayerLives; i++)
             {
-                DrawLife(g, intLifeX * i, 0, intLifeSpacing);               
+                g.FillPie(Brushes.Yellow, i * (intCellSize + 10) + 10, 0, intCellSize, intCellSize, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
             }
-                //draw pacman on top
-                g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
+
+            //draw pacman on top
+            g.FillPie(Brushes.Yellow, rectPlayer, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
 
 
                 Ghost[] ghosts = [.. listGhosts];
@@ -522,10 +522,6 @@ namespace pIterationOne
                 lblScore.Text = "Score: " + Convert.ToString(intScore);  
         }
 
-        private void DrawLife(Graphics g, int pX, int pY, int pSpacing)
-        {
-            g.FillRectangle(Brushes.Yellow, new Rectangle(pX + pSpacing, pY, intCellSize, intCellSize));
-        }
         private void DeathAnimation()
         {
             while (fltDeathAngle < 180)
@@ -1064,8 +1060,7 @@ namespace pIterationOne
             boolReady = true; 
         }
 
-
-        private void GameLoop()
+            private void GameLoop()
         {
             MazeCreate();
             //1.5 second delay
