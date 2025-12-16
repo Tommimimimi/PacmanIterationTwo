@@ -503,7 +503,7 @@ namespace pIterationOne
 
             for (int i = 0; i < intPlayerLives; i++)
             {
-                g.FillPie(Brushes.Yellow, i * (intCellSize + 10) + 10, 0, intCellSize, intCellSize, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
+                g.FillPie(Brushes.Yellow, i * (intCellSize), intCellSize * intMazeX - intCellSize, intCellSize, intCellSize, directionAngle[dirCurrent] + mouthAngle, 360 - (2 * mouthAngle));
             }
 
             //draw pacman on top
